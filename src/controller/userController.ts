@@ -1,5 +1,5 @@
 // controllers/userController.js
-import { User, UserAvatar, File } from "../../src/models";
+import { User, UserAvatar, File } from "../models";
 import { createToken } from "../util/jwt";
 import fs from "fs";
 import path from "path";

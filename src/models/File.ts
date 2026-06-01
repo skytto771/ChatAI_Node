@@ -13,7 +13,7 @@ export interface FileAttributes {
     fileHash: string;
     fileName: string;
     originalName: string;
-    purpose: 'avatar' | 'chat_attachment';
+    purpose: 'avatar' | 'chat_attachment' | null;
     fileUrl: string | null;
     filePath: string | null;
     fileSize: number;
@@ -24,7 +24,7 @@ export interface FileAttributes {
 }
 
 // ========== 2. 创建时可选的字段（如自增 id） ==========
-export interface FileCreationAttributes extends Optional<FileAttributes, 'id' | 'fileUrl' | 'filePath'> {}
+export interface FileCreationAttributes extends Optional<FileAttributes, 'id' | 'fileUrl' | 'filePath' | 'purpose'> {}
 
 // ========== 3. 扩展 Model 类，声明实例方法和静态方法 ==========
 export class File extends Model<FileAttributes, FileCreationAttributes> implements FileAttributes {
@@ -140,7 +140,7 @@ export default function initFile (sequelize:Sequelize){
             },
             purpose: {
                 type: DataTypes.ENUM("avatar", "chat_attachment"),
-                allowNull: false,
+                allowNull: true,
                 comment: "用途",
             },
             fileUrl: {

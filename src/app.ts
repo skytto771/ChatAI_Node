@@ -1,11 +1,18 @@
+import 'dotenv/config';
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import logger, { morganStream } from './util/logger';
 import path from 'path';
 import { initDB, User } from './models';
 import router from './router';
 
 const app: Express = express();
+
+console.log('========================================');
+console.log('服务器启动中...');
+console.log('当前环境:', process.env.NODE_ENV);
+console.log('========================================');
 
 app.use(express.urlencoded());
 app.use(express.json());
@@ -15,7 +22,16 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     exposedHeaders: ['Authorization']
 }));
-app.use(morgan('dev'))
+// 日志配置
+if (process.env.NODE_ENV !== 'production') {
+    console.log('✅ 使用 morgan dev 模式');
+    app.use(morgan('dev'));
+} else {
+    console.log('✅ 使用 morgan combined 模式');
+    app.use(morgan('combined', { stream: morganStream }));
+}
+
+
 // 处理静态文件访问
 app.use('/images', express.static(path.join(__dirname, 'uploads/files/images')));
 app.use('/videos', express.static(path.join(__dirname, 'uploads/files/videos')));
