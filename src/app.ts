@@ -3,6 +3,8 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import logger, { morganStream } from './util/logger';
+import { requestIdMiddleware } from './middleware/requestIddMiddleware';
+import { errorHandler, notFoundHandler } from './middleware/errorHandlerMiddleware';
 import path from 'path';
 import { initDB, User } from './models';
 import router from './router';
@@ -13,6 +15,9 @@ console.log('========================================');
 console.log('服务器启动中...');
 console.log('当前环境:', process.env.NODE_ENV);
 console.log('========================================');
+
+
+app.use(requestIdMiddleware);
 
 app.use(express.urlencoded());
 app.use(express.json());
@@ -46,15 +51,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// 状态处理中间件
-app.use((req: Request, res: Response, next: NextFunction)=>{
-    res.status(404).json('404 NOT FOUND')
-})
-
-// 错误处理中间件
-app.use((err: Error,req: Request, res: Response, next: NextFunction)=>{
-    res.status(500).json('server ERROR')
-})
+// 错误处理
+app.use(notFoundHandler)
+app.use(errorHandler);
 
 // 启动服务器
 const startServer = async () => {

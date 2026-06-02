@@ -25,6 +25,7 @@
     "mysql2": "^3.20.0",
     "openai": "^6.39.1",
     "sequelize": "^6.37.8",
+    "uuid": "^14.0.0",
     "winston": "^3.19.0"
   },
   "devDependencies": {
