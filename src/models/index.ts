@@ -9,6 +9,8 @@ import initUserQuota from './UserQuota';
 import initConversation from './Conversation';
 import initMessage from './Message';
 import initMessageFile from './MessageFile';
+import initVerificationCode from './VerificationCode';
+
 
 // 创建 Sequelize 实例
 const sequelize = new Sequelize(
@@ -33,6 +35,7 @@ const UserQuota = initUserQuota(sequelize);
 const Conversation = initConversation(sequelize);
 const Message = initMessage(sequelize);
 const MessageFile = initMessageFile(sequelize);
+const VerificationCode = initVerificationCode(sequelize);
 
 // 建立关联（在使用前调用）
 const models = {
@@ -44,6 +47,7 @@ const models = {
     Conversation,
     Message,
     MessageFile,
+    VerificationCode
 };
 
 // 执行所有模型的 associate
@@ -78,5 +82,6 @@ export {
     File,
     UserAvatar,
     FileChunk,
+    VerificationCode,
     initDB
 };

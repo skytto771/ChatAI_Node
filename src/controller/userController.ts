@@ -2,9 +2,11 @@
 import { User, UserAvatar, File } from "../models";
 import { createToken } from "../util/jwt";
 import fs from "fs";
-import path from "path";
 import { Request, Response } from "express";
 import { Op } from "sequelize";
+import { ResponseUtil } from "../util/responseUtil";
+import { BusinessCode } from "../constants/http-status.enum";
+
 interface SequelizeValidationError extends Error {
   name: 'SequelizeValidationError';
   errors: Array<{
@@ -79,6 +81,7 @@ export const getUserById = async (req: Request, res: Response) => {
 
 // 用户注册
 export const register = async (req: Request, res: Response) => {
+  const requestId = req.headers['x-request-id'] as string;
   const { username, password, email, phone } = req.body;
 
   if (!username || !password) {
@@ -102,42 +105,30 @@ export const register = async (req: Request, res: Response) => {
 
     const userData = user.toJSON();
 
-    res.status(201).json({
-      success: true,
-      message: "注册成功",
-      data: {
+    res.status(201).json(
+      ResponseUtil.created({
         user: userData,
         token,
-      },
-    });
+      },'注册成功',requestId))
   } catch (err) {
     const error = err as SequelizeValidationError;
     // 验证错误处理
     if (error.name === "SequelizeValidationError") {
-      return res.status(400).json({
-        success: false,
-        message: error.errors.map((e) => e.message),
-        errors: error.errors.map((e) => ({
-          field: e.path,
-          message: e.message,
-        })),
-      });
+      const errorMessages = error.errors.map((err) => err.message).join(", ");
+      return res.status(400).json(ResponseUtil.error(BusinessCode.PARAM_ERROR, errorMessages,requestId));
     }
 
     // 唯一性错误处理
     if (error.name === "SequelizeUniqueConstraintError") {
-      return res.status(409).json({
-        success: false,
-        message: error.message,
-      });
+      return res.status(409).json(
+        ResponseUtil.error(BusinessCode.RESOURCE_ALREADY_EXISTS, error.message,requestId)
+      );
     }
 
     console.error("注册失败:", error);
-    res.status(500).json({
-      success: false,
-      message: "服务器错误",
-      error: error.message,
-    });
+    res.status(500).json(
+      ResponseUtil.error(BusinessCode.SYSTEM_ERROR, error.message,requestId)
+    );
   }
 };
 

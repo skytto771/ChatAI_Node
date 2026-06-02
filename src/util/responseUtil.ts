@@ -25,7 +25,7 @@ export class ResponseUtil {
             code: BusinessCode.SUCCESS,
             message: message || '资源创建成功',
             data,
-            timestamp: Date.now(),
+            timestamp: Date.now(), 
             requestId,
         };
     }

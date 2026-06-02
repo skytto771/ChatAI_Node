@@ -45,12 +45,6 @@ app.use('/others', express.static(path.join(__dirname, 'uploads/files/others')))
 // 路由
 app.use('/api', router);
 
-// 中间件
-app.use((req: Request, res: Response, next: NextFunction) => {
-  console.log(`${req.method},  ${req.url},  ${Date.now()}`);
-  next();
-});
-
 // 错误处理
 app.use(notFoundHandler)
 app.use(errorHandler);
