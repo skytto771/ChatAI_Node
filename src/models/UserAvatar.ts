@@ -15,9 +15,9 @@ import type { File } from "./File";
 
 // ========== 接口定义 ==========
 export interface UserAvatarAttributes {
-  id: number;
-  userId: number;
-  fileId: number;
+  id: string;
+  userId: string;
+  fileId: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -32,9 +32,9 @@ class UserAvatar
   extends Model<UserAvatarAttributes, UserAvatarCreationAttributes>
   implements UserAvatarAttributes
 {
-  declare id: number;
-  declare userId: number;
-  declare fileId: number;
+  declare id: string;
+  declare userId: string;
+  declare fileId: string;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 
@@ -96,13 +96,13 @@ export default function initUserAvatar(
   UserAvatar.init(
     {
       id: {
-        type: DataTypes.BIGINT,
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
-        autoIncrement: true,
         comment: "头像记录ID",
       },
       userId: {
-        type: DataTypes.BIGINT,
+        type: DataTypes.UUID,
         allowNull: false,
         field: "user_id",
         comment: "用户ID",
@@ -112,7 +112,7 @@ export default function initUserAvatar(
         },
       },
       fileId: {
-        type: DataTypes.BIGINT,
+        type: DataTypes.UUID,
         allowNull: false,
         field: "file_id",
         comment: "文件ID",

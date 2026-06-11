@@ -12,7 +12,7 @@ export default {
     secret: process.env.JWT_SECRET || '',
     
     // Token 过期时间
-    expiresIn: '12h',  // 7天
+    expiresIn: '7d',  // 7天
     
     // Refresh Token 过期时间
     refreshExpiresIn: '30d',

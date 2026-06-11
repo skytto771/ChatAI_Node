@@ -1,12 +1,12 @@
 // services/VerificationService.ts
-import { Op } from 'sequelize';
-import crypto from 'crypto';
-import { VerificationCode } from '../models';
-import EmailService from '../services/Notification/EmailService';
-import { ResponseUtil } from '../util/responseUtil';
-import { Request, Response } from 'express';
-// import SMSService from '../services/notification/SMSService';
-
+import { Op } from "sequelize";
+import crypto from "crypto";
+import { VerificationCode, User } from "@/models";
+import EmailService from "@/services/Notification/EmailService";
+import { ResponseUtil } from "@/util/responseUtil";
+import { BusinessCode } from "@/constants/http-status.enum";
+import { Request, Response } from "express";
+// import SMSService from '@/services/notification/SMSService';
 
 // 生成6位数字验证码
 function generateCode(): string {
@@ -16,10 +16,26 @@ function generateCode(): string {
 // 发送验证码
 async function sendCode(
     contact: string,
-    type: 'email' | 'phone',
-    purpose: 'register' | 'login' | 'reset_password' | 'bind',
-    userId?: number
+    type: "email" | "phone",
+    purpose: "register" | "login" | "reset_password" | "bind",
+    userId?: number,
 ): Promise<{ expiresAt: Date }> {
+    // 注册唯一性检查
+    if (purpose === "register") {
+        const existingUser = await User.findOne({
+            where: {
+                [type]: contact,
+            },
+        });
+        if (existingUser) {
+            if (type === "email") {
+                throw new Error("该邮箱已被使用");
+            } else {
+                throw new Error("该手机号已被使用");
+            }
+        }
+    }
+
     // 检查发送频率(1分钟内只能发送一次)
     const recentCode = await VerificationCode.findOne({
         where: {
@@ -27,13 +43,13 @@ async function sendCode(
             type,
             purpose,
             created_at: {
-            [Op.gt]: new Date(Date.now() - 60 * 1000), // 1分钟内
+                [Op.gt]: new Date(Date.now() - 60 * 1000), // 1分钟内
             },
         },
     });
 
     if (recentCode) {
-        throw new Error('发送过于频繁，请稍后再试');
+        throw new Error("发送过于频繁，请稍后再试");
     }
 
     // 生成验证码
@@ -51,7 +67,7 @@ async function sendCode(
     });
 
     // 发送验证码
-    if (type === 'email') {
+    if (type === "email") {
         await EmailService.sendVerificationEmail(contact, code);
     } else {
         //   await SMSService.sendVerificationSMS(contact, code);
@@ -60,19 +76,36 @@ async function sendCode(
     return { expiresAt };
 }
 
-export const sendVerificationCode = async (req: Request, res: Response)=>{
-    const { contact, code, type, purpose } = req.body;
-    await sendCode(contact, type, purpose);
-    return res.send(ResponseUtil.success(null, '验证码发送成功'));
-}
+export const sendVerificationCode = async (req: Request, res: Response) => {
+    const requestId = req.headers["x-request-id"] as string;
+    const { contact, type, purpose } = req.body || {};
+
+    try {
+        await sendCode(contact, type, purpose);
+        return res.json(
+            ResponseUtil.success(BusinessCode.SUCCESS, "验证码发送成功", requestId),
+        );
+    } catch (error) {
+        console.error("验证码发送失败:", error);
+        return res
+            .status(500)
+            .json(
+                ResponseUtil.error(
+                    BusinessCode.SYSTEM_ERROR,
+                    (error as Error).message,
+                    requestId,
+                ),
+            );
+    }
+};
 
 // 验证验证码
-async function verifyCode(
+export async function verifyCodeSpired(
     contact: string,
     code: string,
-    type: 'email' | 'phone',
-    purpose: 'register' | 'login' | 'reset_password' | 'bind'
-): Promise<any> {
+    type: "email" | "phone",
+    purpose: "register" | "login" | "reset_password" | "bind",
+): Promise<boolean> {
     const verificationCode = await VerificationCode.findOne({
         where: {
             contact,
@@ -84,11 +117,11 @@ async function verifyCode(
                 [Op.gt]: new Date(), // 未过期
             },
         },
-        order: [['created_at', 'DESC']],
+        order: [["created_at", "DESC"]],
     });
 
     if (!verificationCode) {
-    throw new Error('验证码无效或已过期');
+        throw new Error("验证码无效或已过期");
     }
 
     // 标记为已验证
@@ -96,14 +129,14 @@ async function verifyCode(
         verified_at: new Date(),
     });
 
-    return verificationCode;
+    return true;
 }
 
 // 检查是否已验证(用于注册时验证)
 async function isVerified(
     contact: string,
-    type: 'email' | 'phone',
-    purpose: 'register'
+    type: "email" | "phone",
+    purpose: "register",
 ): Promise<boolean> {
     const verified = await VerificationCode.findOne({
         where: {
@@ -117,19 +150,19 @@ async function isVerified(
                 [Op.gt]: new Date(Date.now() - 30 * 60 * 1000), // 30分钟内验证过的
             },
         },
-        order: [['verified_at', 'DESC']],
+        order: [["verified_at", "DESC"]],
     });
 
     return !!verified;
 }
 
 // 清理过期验证码(定时任务)
-async function cleanExpiredCodes(): Promise<void> {
+export async function cleanExpiredCodes(): Promise<void> {
     await VerificationCode.destroy({
-    where: {
-        expires_at: {
-        [Op.lt]: new Date(),
+        where: {
+            expires_at: {
+                [Op.lt]: new Date(),
+            },
         },
-    },
     });
 }

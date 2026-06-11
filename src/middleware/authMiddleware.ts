@@ -41,6 +41,10 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
       });
     }
 
+    user.update({
+      status: 'active',
+    });
+
     // 将用户信息挂载到 request
     req.user = user.toJSON();
     req.token = token;

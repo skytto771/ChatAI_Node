@@ -1,24 +1,26 @@
 // services/notification/EmailService.ts
 import nodemailer from 'nodemailer';
+import { nodemailerConfig } from '@/config/verifiyCode'
 
 class EmailService {
     private transporter: nodemailer.Transporter;
 
     constructor() {
         this.transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT || '587'),
-            secure: false,
+            host: nodemailerConfig.host,
+            port: nodemailerConfig.port,
+            secure: nodemailerConfig.secure,
             auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
+                user: nodemailerConfig.auth.user,
+                pass: nodemailerConfig.auth.pass,
+
             },
         });
     }
 
     async sendVerificationEmail(to: string, code: string): Promise<void> {
         const mailOptions = {
-            from: `"AI Chat" <${process.env.SMTP_FROM}>`,
+            from: `"星空智能助手" <${process.env.SMTP_USER}>`,
             to,
             subject: '邮箱验证码',
             html: `

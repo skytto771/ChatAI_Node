@@ -26,7 +26,7 @@ interface uploadChunkAttributes {
   chunkSize: number,
   chunkPath: string,
   uploadTime: date,
-  fileId: number,
+  fileId: string,
   chunkIndex: number,
 }
 

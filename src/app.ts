@@ -8,6 +8,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandlerMiddlewa
 import path from 'path';
 import { initDB, User } from './models';
 import router from './router';
+import { intervalControl } from '@/job'
 
 const app: Express = express();
 
@@ -64,7 +65,7 @@ const startServer = async () => {
         if (!existingAdmin) {
             await User.create({
                 username: adminUsername,
-                password: 'Admin@123456',   // 建议使用强密码，后续可通过环境变量配置
+                password: process.env.ADMIN_PASSWORD,   // 建议使用强密码，后续可通过环境变量配置
                 email: 'admin@example.com',
                 phone: '13800000000',
                 nickname: '系统管理员',
@@ -75,10 +76,13 @@ const startServer = async () => {
             });
             console.log('✅ 测试数据插入成功');
         }
+
+        // 定时任务
+        intervalControl.start()
         
         // 启动服务器
-        app.listen(3000, () => {
-            console.log('🚀 服务器运行在 http://localhost:3000');
+        app.listen(process.env.PORT || 3000, () => {
+            console.log(`🚀 服务器运行在 http://localhost:${process.env.PORT}`);
         });
         
     } catch (error) {

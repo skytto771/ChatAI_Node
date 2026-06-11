@@ -10,6 +10,7 @@ import initConversation from './Conversation';
 import initMessage from './Message';
 import initMessageFile from './MessageFile';
 import initVerificationCode from './VerificationCode';
+import initUserConversationSetting from './UserConversationSetting'
 
 
 // 创建 Sequelize 实例
@@ -36,6 +37,7 @@ const Conversation = initConversation(sequelize);
 const Message = initMessage(sequelize);
 const MessageFile = initMessageFile(sequelize);
 const VerificationCode = initVerificationCode(sequelize);
+const UserConversationSetting = initUserConversationSetting(sequelize)
 
 // 建立关联（在使用前调用）
 const models = {
@@ -47,7 +49,8 @@ const models = {
     Conversation,
     Message,
     MessageFile,
-    VerificationCode
+    VerificationCode,
+    UserConversationSetting
 };
 
 // 执行所有模型的 associate
@@ -66,7 +69,7 @@ const initDB = async () => {
         // 同步所有模型
         // { alter: true } - 自动更新表结构（生产环境慎用）
         // { force: false } - 如果表不存在则创建
-        await sequelize.sync({ alter: true });
+        await sequelize.sync({ alter: true, force: false });
         console.log('✅ 所有模型同步完成');
         
         return true;
@@ -83,5 +86,9 @@ export {
     UserAvatar,
     FileChunk,
     VerificationCode,
-    initDB
+    Conversation,
+    Message,
+    MessageFile,
+    UserConversationSetting,
+    initDB,
 };
