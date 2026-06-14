@@ -1,9 +1,10 @@
 // controllers/MessageController.ts
 import { Request, Response } from "express";
-import { MessageService } from "../services/MessageService";
-import { ResponseUtil } from "../util/responseUtil";
-import { BusinessCode } from "../constants/http-status.enum";
+import { MessageService } from "@/services/MessageService";
+import { ResponseUtil } from "@/util/responseUtil";
+import { BusinessCode } from "@/constants/http-status.enum";
 import { sendToDeepSeek, sendToDeepSeekStream } from '@/services/OpenAi/DeepseekService'
+import { MessageStreamManager } from '@/services/StreamManagerService'
 
 export class MessageController {
     /**
@@ -18,6 +19,7 @@ export class MessageController {
                 role,
                 content,
                 tokensUsed,
+                status: 'completed',
             });
 
             res.status(201).json(
@@ -265,6 +267,8 @@ export class MessageController {
         const SAVE_CHUNK_SIZE = 100; // 每100字符保存一次
         let lastSaveLength = 0;
         let fullResponse = ''
+        let fullReasoning = ''
+
         
         const context = await MessageService.getConversationContext(conversationId as string, userId)
         const options = {
@@ -279,8 +283,13 @@ export class MessageController {
             const message = await MessageService.createMessage(conversationId, {
                 role: 'assistant',
                 content: '',
+                reasoning: '',
                 tokensUsed: 0,
+                status: 'generating',
             })
+
+            // 注册到流管理器
+            const streamId = MessageStreamManager.createStream(message.id);
             
             if(context.settings.streamResponse){
                 res.setHeader('Content-Type', 'text/event-stream');
@@ -289,31 +298,136 @@ export class MessageController {
                 res.flushHeaders(); // 立即发送头部
                 
                 await sendToDeepSeekStream(options,(back)=>{
+                    const chunk = {
+                        ...back,
+                        messageId: message.id,
+                        position: fullResponse.length
+                    }
                     if(back.type == 'content' && back.content){
-                        back['messageId'] = message.id
-                        res.write(`${JSON.stringify(back)}\n\n`)
+                        res.write(`${JSON.stringify(chunk)}\n\n`)
+                        MessageStreamManager.pushChunk(message.id, chunk)
                         fullResponse += back.content
+                    }
+                    if(back.type == 'reasoning_content' && back.content){
+                        res.write(`${JSON.stringify(chunk)}\n\n`)
+                        MessageStreamManager.pushChunk(message.id, chunk)
+                        fullReasoning += back.content
                     }
                     const shouldSaveBySize = back.type === 'finish' || fullResponse.length - lastSaveLength >= SAVE_CHUNK_SIZE;
                     if (shouldSaveBySize || back.type == 'finish') { 
                         message.update({
-                            content: fullResponse
+                            content: fullResponse,
+                            reasoning: fullReasoning,
+                            status: back.type == 'finish' ? 'completed' : 'generating',
+                            tokensUsed: back.tokensUsed,
                         })
                         lastSaveLength = fullResponse.length
                     }
                     if(back.type == 'finish'){
+                        res.write(`${JSON.stringify(chunk)}\n\n`)
+                        MessageStreamManager.pushChunk(message.id, chunk)
+                        MessageStreamManager.completeStream(message.id);
                         res.end()
                     }
                 })
 
             }else{
                 const back = await sendToDeepSeek(options)
+                message.update({
+                    content: back.content as string,
+                    status: 'completed'
+                })
                 return res.json(
                     ResponseUtil.success(back, 'success', requestId)
                 );
             }
 
         }catch(error){
+            console.error(error);
+            res.status(500).json(
+                ResponseUtil.error(BusinessCode.SYSTEM_ERROR, "服务器繁忙", requestId)
+            );
+        }
+    }
+
+    // ===== 新增接口：断点续传 =====
+    static resumeChatHandler = async (req: Request, res: Response)=>{
+        const requestId = req.headers['x-request-id'] as string;
+        const userId = req.user!.id;
+        const { messageId } = req.body;
+
+        const message = await MessageService.getMessageById(messageId, userId);
+
+        try {
+            if (!message) {
+                return res.status(404).json(
+                    ResponseUtil.error(BusinessCode.RESOURCE_NOT_FOUND, "消息不存在", requestId)
+                );
+            }
+
+            // 2. 检查消息是否已完成生成
+            if (message.status === 'completed') {
+                // 已完成，直接返回完整内容
+                return res.json(
+                    ResponseUtil.success({
+                        content: message.content,
+                        reasoning: message.reasoning,
+                        status: 'completed'
+                    }, '消息已生成完毕', requestId)
+                );
+            }
+
+            // 3. 消息还在生成中，返回剩余内容
+            if (message.status === 'generating') {
+                const stream = MessageStreamManager.getStream(messageId);
+            
+                if (!stream) {
+                    return res.status(404).json(
+                        ResponseUtil.error(BusinessCode.RESOURCE_NOT_FOUND, "流已过期", requestId)
+                    );
+                }
+
+                res.setHeader('Content-Type', 'text/event-stream');
+                res.setHeader('Cache-Control', 'no-cache');
+                res.setHeader('Connection', 'keep-alive');
+                res.flushHeaders();
+
+                const buffers = stream.buffer
+                if (buffers) {
+                    buffers.forEach((chunk: any) => {
+                        if(chunk.type == 'content' || chunk.type == 'reasoning_content'){
+                            res.write(`${JSON.stringify(chunk)}\n\n`);
+                        }else if(chunk.type == 'finish'){
+                            res.write(`${JSON.stringify(chunk)}\n\n`)
+                            res.end()
+                        }
+                    });
+                }
+
+                const listenerId = MessageStreamManager.addListener(messageId, (chunk: any) => 
+                    {
+                        // 检查连接是否还打开
+                        if (res.writableEnded) return;
+                        
+                        if (chunk.type === 'finish') {
+                            res.write(`${JSON.stringify({
+                                type: 'finish',
+                                messageId: messageId
+                            })}\n\n`);
+                            res.end();
+                        } else {
+                            res.write(`${JSON.stringify({
+                                ...chunk,
+                                isResume: true
+                            })}\n\n`);
+                        }
+                    }
+                );
+
+
+            }
+            
+        } catch (error) {
             console.error(error);
             res.status(500).json(
                 ResponseUtil.error(BusinessCode.SYSTEM_ERROR, "服务器繁忙", requestId)

@@ -11,6 +11,7 @@ import initMessage from './Message';
 import initMessageFile from './MessageFile';
 import initVerificationCode from './VerificationCode';
 import initUserConversationSetting from './UserConversationSetting'
+import initConversationSetting from './ConversationSetting'
 
 
 // 创建 Sequelize 实例
@@ -38,6 +39,7 @@ const Message = initMessage(sequelize);
 const MessageFile = initMessageFile(sequelize);
 const VerificationCode = initVerificationCode(sequelize);
 const UserConversationSetting = initUserConversationSetting(sequelize)
+const ConversationSetting = initConversationSetting(sequelize)
 
 // 建立关联（在使用前调用）
 const models = {
@@ -50,7 +52,8 @@ const models = {
     Message,
     MessageFile,
     VerificationCode,
-    UserConversationSetting
+    UserConversationSetting,
+    ConversationSetting,
 };
 
 // 执行所有模型的 associate
@@ -90,5 +93,6 @@ export {
     Message,
     MessageFile,
     UserConversationSetting,
+    ConversationSetting,
     initDB,
 };

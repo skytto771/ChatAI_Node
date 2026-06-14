@@ -11,14 +11,12 @@ export class ConversationController {
     static async create(req: Request, res: Response) {
         const requestId = req.headers["x-request-id"] as string;
         const userId = req.user!.id;
-        const { title, model, systemPrompt, userPrompt } = req.body;
+        const { title, model } = req.body;
 
         try {
             const conversation = await ConversationService.createConversation(userId, {
                 title,
                 model,
-                systemPrompt,
-                userPrompt
             });
 
             res.status(201).json(

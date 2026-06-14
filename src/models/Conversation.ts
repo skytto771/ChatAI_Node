@@ -114,6 +114,13 @@ export class Conversation
       onDelete: "CASCADE",
       onUpdate: "CASCADE",
     });
+
+    Conversation.hasOne(models.ConversationSetting, {
+      foreignKey: "conversation_id",
+      as: "setting",
+      onDelete: "CASCADE",
+      onUpdate: "CASCADE",
+    });
   }
 
   /**

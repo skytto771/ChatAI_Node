@@ -103,7 +103,7 @@ export class UserConversationSetting
       settings = await UserConversationSetting.create({
         userId,
         contextLimit: 0,
-        maxTokens: 2048,
+        maxTokens: 0,
         thinkingMode: "fast",
         enableWebSearch: false,
         enableCodeInterpreter: false,

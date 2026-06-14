@@ -18,7 +18,9 @@ export interface MessageAttributes {
   conversationId: string;
   role: "user" | "assistant" | "system";
   content: string;
+  reasoning: string | null;
   tokensUsed: number;
+  status: 'completed' | 'generating';
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -38,7 +40,9 @@ export class Message
   declare conversationId: string;
   declare role: "user" | "assistant" | "system";
   declare content: string;
+  declare reasoning: string | null;
   declare tokensUsed: number;
+  declare status: 'completed' | 'generating';
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 
@@ -180,6 +184,11 @@ export default function initMessage(sequelize: Sequelize): typeof Message {
         //   notEmpty: true,
         // },
       },
+      reasoning: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: "AI生成的 reasoning",
+      },
       tokensUsed: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -187,6 +196,13 @@ export default function initMessage(sequelize: Sequelize): typeof Message {
         field: "tokens_used",
         comment: "该条消息消耗的Token数",
       },
+      status: {
+        type: DataTypes.ENUM("completed", "generating"),
+        allowNull: false,
+        defaultValue: "generating",
+        comment: "消息状态",
+      },
+
     },
     {
       sequelize,

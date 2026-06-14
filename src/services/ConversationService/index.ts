@@ -1,6 +1,6 @@
 // services/ConversationService.ts
 import { Op } from "sequelize";
-import { Conversation, Message } from "@/models";
+import { Conversation, Message, UserConversationSetting, ConversationSetting } from "@/models";
 
 type ConversationInstance = InstanceType<typeof Conversation>
 
@@ -22,6 +22,9 @@ export class ConversationService {
             isArchived: false,
             isTop: false,
         });
+
+        const userScSettings = await UserConversationSetting.getSettings(userId);
+        await ConversationSetting.getSettings(conversation.id,userScSettings);
         return conversation;
     }
 

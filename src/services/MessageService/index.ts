@@ -34,6 +34,7 @@ export class MessageService {
             role: data.role || "user",
             content: data.content || "",
             tokensUsed: data.tokensUsed || 0,
+            status: data.status || 'generating',
         });
 
         // 更新会话的更新时间
