@@ -57,5 +57,8 @@ export enum BusinessCode {
     // 系统错误 5xxx
     SYSTEM_ERROR = 5000,
     DATABASE_ERROR = 5001,
-    NETWORK_ERROR = 5002
+    NETWORK_ERROR = 5002,
+
+    // 未知错误
+    UNKNOWN_ERROR = 9999,
 }

@@ -1,9 +1,12 @@
 // services/MessageService.ts
 import { Op, fn, col } from "sequelize";
-import { Message, Conversation, UserConversationSetting } from "@/models";
+import { Message, Conversation, ConversationSetting, UserConversationSetting } from "@/models";
 import { MessageAttributes, MessageCreationAttributes } from "@/models/Message";
+import { ConversationSettingAttributes } from "@/models/ConversationSetting";
+import { ConversationAttributes } from "@/models/Conversation";
 
 type MessageInstance = InstanceType <typeof Message>
+
 
 export class MessageService {
     /**
@@ -110,7 +113,11 @@ export class MessageService {
     static async getConversationContext(
         conversationId: string,
         userId: string,
-    ): Promise<any> {
+    ): Promise<{
+        messages:MessageAttributes[];
+        settings: ConversationSettingAttributes;
+        conversation: ConversationAttributes
+    } | null> {
 
         const conversation = await Conversation.findOne({
             where: {
@@ -119,12 +126,13 @@ export class MessageService {
         });
 
         if(!conversation){
-            return {}
+            return null
         }
+        const settings = await UserConversationSetting.getSettings(userId);
 
-        const modelSetting = await UserConversationSetting.getSettings(userId);
+        const modelSetting = await ConversationSetting.getSettings(conversation.id,settings);
         if(!modelSetting){
-            return {}
+            return null
         }
         let messages = []
 
@@ -135,17 +143,13 @@ export class MessageService {
             },
             order: [["created_at", "ASC"]],
         }
-        
-        if(modelSetting.contextLimit !== 0){
-            options.limit = modelSetting.contextLimit
-        }
 
         messages = await Message.findAll(options);
 
         const result = {
-            messages,
-            settings: modelSetting,
-            conversation: conversation,
+            messages: messages.map((message) => message.toJSON()),
+            settings: modelSetting.toJSON(),
+            conversation: conversation.toJSON(),
         }
 
         // // 如果需要按 token 数量裁剪

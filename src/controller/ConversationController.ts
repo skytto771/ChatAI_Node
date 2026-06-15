@@ -89,13 +89,12 @@ export class ConversationController {
         const requestId = req.headers["x-request-id"] as string;
         const userId = req.user!.id;
         const { id } = req.body;
-        const { title, model, systemPrompt } = req.body;
+        const { title, model } = req.body;
         
         try {
             const conversation = await ConversationService.updateConversation(id, userId, {
                 title,
                 model,
-                systemPrompt,
             });
 
             if (!conversation) {

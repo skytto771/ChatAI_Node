@@ -16,8 +16,6 @@ export class ConversationService {
             userId,
             title: data.title || "新对话",
             model: data.model || "deepseek-v4-flash",
-            systemPrompt: data.systemPrompt || null,
-            userPrompt: data.userPrompt || null,
             tokenCount: 0,
             isArchived: false,
             isTop: false,
@@ -46,6 +44,10 @@ export class ConversationService {
                     as: "messages",
                     order: [["created_at", "ASC"]],
                 },
+                {
+                    model: ConversationSetting,
+                    as: "setting",
+                }
             ],
         });
         return conversation;
@@ -58,12 +60,10 @@ export class ConversationService {
         userId: string,
         options: {
             isArchived?: boolean;
-            limit?: number;
-            offset?: number;
             keyword?: string;
         } = {}
     ): Promise<{ rows: ConversationInstance[]; count: number }> {
-        const { isArchived, limit, offset = 0, keyword } = options;
+        const { isArchived, keyword } = options;
 
         const where: any = { userId };
 
@@ -80,8 +80,12 @@ export class ConversationService {
         const result = await Conversation.findAndCountAll({
             where,
             order: [["updated_at", "DESC"]],
-            limit,
-            offset,
+            include:[
+                {
+                    model: ConversationSetting,
+                    as: "setting",
+                }
+            ]
         });
 
         return result;
@@ -103,7 +107,7 @@ export class ConversationService {
             return null;
         }
 
-        const allowedUpdates: (keyof ConversationInstance)[] = ["title", "model", "systemPrompt"];
+        const allowedUpdates: (keyof ConversationInstance)[] = ["title", "model"];
         const updateData: any = {};
 
         allowedUpdates.forEach((field) => {

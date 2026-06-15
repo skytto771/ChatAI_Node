@@ -17,8 +17,6 @@ export interface ConversationAttributes {
   userId: string;
   title: string;
   model: string;
-  systemPrompt: string | null;
-  userPrompt: string | null;
   tokenCount: number;
   isArchived: boolean;
   isTop: boolean;
@@ -29,7 +27,7 @@ export interface ConversationAttributes {
 // ========== 2. 创建时可选的字段 ==========
 export interface ConversationCreationAttributes extends Optional<
   ConversationAttributes,
-  "id" | "title" | "systemPrompt" | "tokenCount" | "isArchived"
+  "id" | "title" | "tokenCount" | "isArchived"
 > {}
 
 // ========== 3. 扩展 Model 类 ==========
@@ -41,8 +39,6 @@ export class Conversation
   declare userId: string;
   declare title: string;
   declare model: string;
-  declare systemPrompt: string | null;
-  declare userPrompt: string | null;
   declare tokenCount: number;
   declare isArchived: boolean;
   declare isTop: boolean;
@@ -58,6 +54,10 @@ export class Conversation
   declare createMessage: HasManyCreateAssociationMixin<Message>;
 
   // ====== 实例方法 ======
+  toJSON(this: Conversation): Omit<ConversationAttributes, "">{
+    const values = { ...this.get() };
+    return values as Omit<ConversationAttributes, "">;
+  }
   /**
    * 获取会话摘要（最近几条消息预览）
    */
@@ -210,18 +210,6 @@ export default function initConversation(
         validate: {
           notEmpty: true,
         },
-      },
-      systemPrompt: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-        field: "system_prompt",
-        comment: "会话级系统提示词",
-      },
-      userPrompt: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-        field: "user_prompt",
-        comment: "会话级用户提示词",
       },
       tokenCount: {
         type: DataTypes.INTEGER,

@@ -263,7 +263,7 @@ export class MessageController {
     static async chatHandler(req: Request, res: Response){
         const requestId = req.headers['x-request-id'] as string;
         const userId = req.user!.id
-        const { conversationId } = req.body
+        const { conversationId, isThinking, isWebSearch } = req.body
         const SAVE_CHUNK_SIZE = 100; // 每100字符保存一次
         let lastSaveLength = 0;
         let fullResponse = ''
@@ -271,12 +271,15 @@ export class MessageController {
 
         
         const context = await MessageService.getConversationContext(conversationId as string, userId)
+        if(!context){
+            return ResponseUtil.error(BusinessCode.RESOURCE_NOT_FOUND, 'Conversation not found')
+        }
         const options = {
+            ...context.settings,
             messages: context.messages,
             model: context.conversation.model,
-            thinking: context.settings.thinkingMode,
-            webSearch: context.settings.enableWebSearch,
-            fileUpload: context.settings.enableFileUpload,
+            isThinking,
+            isWebSearch,
         }
         
         try{

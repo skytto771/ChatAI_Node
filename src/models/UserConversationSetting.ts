@@ -12,6 +12,7 @@ export interface UserConversationSettingAttributes {
   maxTokens: number;              // 单次回复最大token
   
   // 思考模式配置
+  isThinking: boolean;
   thinkingMode: "fast" | "balanced" | "deep";
   
   // 功能开关
@@ -22,8 +23,8 @@ export interface UserConversationSettingAttributes {
   // 模型参数
   temperature: number;            // 温度 0-2
   topP: number;                   // 核采样 0-1
-  frequencyPenalty: number;       // 频率惩罚 -2-2
-  presencePenalty: number;        // 存在惩罚 -2-2
+  logprobs: boolean;
+  topLogprobs: number;
   
   // 响应配置
   responseFormat: "text" | "json" | "markdown";
@@ -40,8 +41,7 @@ export interface UserConversationSettingAttributes {
 export interface UserConversationSettingCreationAttributes extends Optional<
   UserConversationSettingAttributes,
   "id" | "contextLimit" | "maxTokens" | "thinkingMode" | "enableWebSearch" | 
-  "enableCodeInterpreter" | "enableFileUpload" | "temperature" | "topP" | "frequencyPenalty" | 
-  "presencePenalty" | "responseFormat" | "streamResponse" | "contentFilter"
+  "enableCodeInterpreter" | "enableFileUpload" | "temperature" | "topP" | "topLogprobs" | "responseFormat" | "streamResponse" | "contentFilter"
 > {}
 
 // ========== 3. 扩展 Model 类 ==========
@@ -57,6 +57,7 @@ export class UserConversationSetting
   declare maxTokens: number;
   
   // 思考模式配置
+  declare isThinking: boolean;
   declare thinkingMode: "fast" | "balanced" | "deep";
   declare enableReasoning: boolean;
   declare reasoningEffort: "max" | "medium" | "high";
@@ -73,8 +74,8 @@ export class UserConversationSetting
   // 模型参数
   declare temperature: number;
   declare topP: number;
-  declare frequencyPenalty: number;
-  declare presencePenalty: number;
+  declare logprobs: boolean;
+  declare topLogprobs: number;
   
   // 响应配置
   declare responseFormat: "text" | "json" | "markdown";
@@ -102,16 +103,17 @@ export class UserConversationSetting
     if (!settings) {
       settings = await UserConversationSetting.create({
         userId,
-        contextLimit: 0,
-        maxTokens: 0,
+        contextLimit: 16384,
+        maxTokens: 4096,
+        isThinking: false,
         thinkingMode: "fast",
         enableWebSearch: false,
         enableCodeInterpreter: false,
-        enableFileUpload: true,
+        enableFileUpload: false,
         temperature: 0.7,
         topP: 1.0,
-        frequencyPenalty: 0.0,
-        presencePenalty: 0.0,
+        logprobs: false,
+        topLogprobs: 0,
         responseFormat: "markdown",
         streamResponse: true,
         contentFilter: "moderate",
@@ -146,8 +148,6 @@ export class UserConversationSetting
       enableFileUpload: true,
       temperature: 0.7,
       topP: 1.0,
-      frequencyPenalty: 0.0,
-      presencePenalty: 0.0,
       responseFormat: "markdown",
       streamResponse: true,
       contentFilter: "moderate",
@@ -196,11 +196,11 @@ export default function initUserConversationSetting(
       contextLimit: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: 20,
+        defaultValue: 4096,
         field: "context_limit",
         validate: {
-          min: 0,
-          max: 100,
+          min: 1024,
+          max: 1048576,
         },
         comment: "上下文窗口大小（消息条数）",
       },
@@ -210,13 +210,20 @@ export default function initUserConversationSetting(
         defaultValue: 2048,
         field: "max_tokens",
         validate: {
-          min: 256,
-          max: 16384,
+          min: 1024,
+          max: 1048576,
         },
         comment: "单次回复最大token数",
       },
       
       // 思考模式配置
+      isThinking: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        field: "is_thinking",
+        comment: "是否启用思考模式",
+      },
       thinkingMode: {
         type: DataTypes.ENUM("fast", "balanced", "deep"),
         allowNull: false,
@@ -270,27 +277,17 @@ export default function initUserConversationSetting(
         },
         comment: "核采样参数（0-1）",
       },
-      frequencyPenalty: {
-        type: DataTypes.DECIMAL(3, 2),
+      logprobs: {
+        type: DataTypes.BOOLEAN,
         allowNull: false,
-        defaultValue: 0,
-        field: "frequency_penalty",
-        validate: {
-          min: -2,
-          max: 2,
-        },
-        comment: "频率惩罚（-2-2）",
+        defaultValue: false,
+        comment: "是否返回所输出 token 的对数概率",
       },
-      presencePenalty: {
-        type: DataTypes.DECIMAL(3, 2),
+      topLogprobs: {
+        type: DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: 0,
-        field: "presence_penalty",
-        validate: {
-          min: -2,
-          max: 2,
-        },
-        comment: "存在惩罚（-2-2）",
+        field: "top_logprobs",
+        comment: "指定每个输出位置返回输出概率 top N 的 token",
       },
       
       // 响应配置

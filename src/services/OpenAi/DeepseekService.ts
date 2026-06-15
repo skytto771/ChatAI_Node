@@ -1,17 +1,16 @@
 import OpenAI from "openai";
 import config from '@/config/openAi'
+import { ConversationSettingAttributes } from "@/models/ConversationSetting";
+
 
 const openai = new OpenAI({
     baseURL: config.deepseek.baseURL,
     apiKey: config.deepseek.apiKey,
 });
 
-interface OpenAiOptions {
+interface OpenAiOptions extends ConversationSettingAttributes {
     model: string;
     messages: Array<{ role: string; content: string }>;
-    thinking: string;
-    webSearch: boolean;
-    fileUpload: boolean;
 }
 
 interface streamBackFn {
@@ -25,9 +24,8 @@ export async function sendToDeepSeek(options:OpenAiOptions) {
     const {
         messages,
         model,
-        thinking,
-        webSearch,
-        fileUpload,
+        isThinking,
+        maxTokens
     } = options
 
     let thinkingP = {}
@@ -36,17 +34,24 @@ export async function sendToDeepSeek(options:OpenAiOptions) {
         messages,
         stream: false,
     }
-    switch(thinking){
-        case 'fast':
-            params.thinking = {"type": "disabled"}
-            break
-        case 'balanced':
-            params.extra_body = {"type": "enabled"}
-            params.reasoning_effort = "high"
-            break
-        case 'deep':
-            params.extra_body = {"type": "enabled"}
-            params.reasoning_effort = "max"
+    if(isThinking){
+        switch (options.thinkingMode) {
+            case 'fast':
+                params.thinking = {"type": "disabled"}
+                break
+            case 'balanced':
+                params.thinking = {"type": "enabled"}
+                params.reasoning_effort = "high"
+                break
+            case 'deep':
+                params.thinking = {"type": "enabled"}
+                params.reasoning_effort = "max"
+        }
+    }else{
+        params.thinking = {"type": "disabled"}
+    }
+    if(maxTokens){
+        params.max_tokens = maxTokens
     }
 
 
@@ -66,9 +71,9 @@ export async function sendToDeepSeekStream(options:OpenAiOptions,onChunk:(back:s
     const {
         messages,
         model,
-        thinking,
-        webSearch,
-        fileUpload,
+        isThinking,
+        enableWebSearch,
+        maxTokens,
     } = options
 
     let thinkingP = {}
@@ -77,20 +82,27 @@ export async function sendToDeepSeekStream(options:OpenAiOptions,onChunk:(back:s
         messages,
         stream: true,
     }
-    switch(thinking){
-        case 'fast':
-            params.thinking = {"type": "disabled"}
-            break
-        case 'balanced':
-            params.extra_body = {"type": "enabled"}
-            params.reasoning_effort = "high"
-            break
-        case 'deep':
-            params.extra_body = {"type": "enabled"}
-            params.reasoning_effort = "max"
+    if(isThinking){
+        switch (options.thinkingMode) {
+            case 'fast':
+                params.thinking = {"type": "disabled"}
+                break
+            case 'balanced':
+                params.thinking = {"type": "enabled"}
+                params.reasoning_effort = "high"
+                break
+            case 'deep':
+                params.thinking = {"type": "enabled"}
+                params.reasoning_effort = "max"
+        }
+    }else{
+        params.thinking = {"type": "disabled"}
     }
-    if(webSearch){
+    if(enableWebSearch){
         params.extra_body.enable_search = true
+    }
+    if(maxTokens){
+        params.max_tokens = maxTokens
     }
 
 

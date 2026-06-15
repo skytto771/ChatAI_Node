@@ -14,31 +14,34 @@ import type { UserConversationSetting } from "./UserConversationSetting";
 export interface ConversationSettingAttributes {
     id: string;
     conversationId: string;
+    systemPrompt: string;
+    userPrompt: string;
 
     // 上下文配置（null 表示继承用户级设置）
-    contextLimit: number | null;
-    maxTokens: number | null;
+    contextLimit: number;
+    maxTokens: number;
 
     // 思考模式
-    thinkingMode: "fast" | "balanced" | "deep" | null;
+    isThinking: boolean;
+    thinkingMode: "fast" | "balanced" | "deep";
 
     // 功能开关
-    enableWebSearch: boolean | null;
-    enableCodeInterpreter: boolean | null;
-    enableFileUpload: boolean | null;
+    enableWebSearch: boolean;
+    enableCodeInterpreter: boolean;
+    enableFileUpload: boolean;
 
     // 模型参数
-    temperature: number | null;          // 0-2
-    topP: number | null;                 // 0-1
-    frequencyPenalty: number | null;     // -2-2
-    presencePenalty: number | null;      // -2-2
+    temperature: number;          // 0-2
+    topP: number;                 // 0-1
+    logprobs: boolean;
+    topLogprobs: number;
 
     // 响应配置
-    responseFormat: "text" | "json" | "markdown" | null;
-    streamResponse: boolean | null;
+    responseFormat: "text" | "json" | "markdown";
+    streamResponse: boolean;
 
     // 安全配置
-    contentFilter: "strict" | "moderate" | "loose" | null;
+    contentFilter: "strict" | "moderate" | "loose";
 
     createdAt?: Date;
     updatedAt?: Date;
@@ -57,11 +60,13 @@ export interface ConversationSettingCreationAttributes
         | "enableFileUpload"
         | "temperature"
         | "topP"
-        | "frequencyPenalty"
-        | "presencePenalty"
+        | "logprobs"
+        | "topLogprobs"
         | "responseFormat"
         | "streamResponse"
         | "contentFilter"
+        | "systemPrompt"
+        | "userPrompt"
     > {}
 
 // ========== 模型类 ==========
@@ -74,20 +79,23 @@ export class ConversationSetting
 {
     declare id: string;
     declare conversationId: string;
+    declare systemPrompt: string;
+    declare userPrompt: string;
 
-    declare contextLimit: number | null;
-    declare maxTokens: number | null;
-    declare thinkingMode: "fast" | "balanced" | "deep" | null;
-    declare enableWebSearch: boolean | null;
-    declare enableCodeInterpreter: boolean | null;
-    declare enableFileUpload: boolean | null;
-    declare temperature: number | null;
-    declare topP: number | null;
-    declare frequencyPenalty: number | null;
-    declare presencePenalty: number | null;
-    declare responseFormat: "text" | "json" | "markdown" | null;
-    declare streamResponse: boolean | null;
-    declare contentFilter: "strict" | "moderate" | "loose" | null;
+    declare contextLimit: number;
+    declare maxTokens: number;
+    declare isThinking: boolean;
+    declare thinkingMode: "fast" | "balanced" | "deep";
+    declare enableWebSearch: boolean;
+    declare enableCodeInterpreter: boolean;
+    declare enableFileUpload: boolean;
+    declare temperature: number;
+    declare topP: number;
+    declare logprobs: boolean;
+    declare topLogprobs: number;
+    declare responseFormat: "text" | "json" | "markdown";
+    declare streamResponse: boolean;
+    declare contentFilter: "strict" | "moderate" | "loose";
 
     declare readonly createdAt: Date;
     declare readonly updatedAt: Date;
@@ -97,32 +105,9 @@ export class ConversationSetting
     declare getConversation: BelongsToGetAssociationMixin<Conversation>;
 
     // ====== 实例方法 ======
-
-    /**
-     * 合并用户全局设置与该对话级设置，
-     * 对话级有值的字段优先，null 则回退到用户级。
-     * 需传入用户设置对象（UserConversationSetting）
-     */
-    getMergedSettings(userSettings: UserConversationSetting) {
-        return {
-            contextLimit: this.contextLimit ?? userSettings.contextLimit,
-            maxTokens: this.maxTokens ?? userSettings.maxTokens,
-            thinkingMode: this.thinkingMode ?? userSettings.thinkingMode,
-            enableWebSearch: this.enableWebSearch ?? userSettings.enableWebSearch,
-            enableCodeInterpreter:
-                this.enableCodeInterpreter ?? userSettings.enableCodeInterpreter,
-            enableFileUpload:
-                this.enableFileUpload ?? userSettings.enableFileUpload,
-            temperature: this.temperature ?? userSettings.temperature,
-            topP: this.topP ?? userSettings.topP,
-            frequencyPenalty:
-                this.frequencyPenalty ?? userSettings.frequencyPenalty,
-            presencePenalty:
-                this.presencePenalty ?? userSettings.presencePenalty,
-            responseFormat: this.responseFormat ?? userSettings.responseFormat,
-            streamResponse: this.streamResponse ?? userSettings.streamResponse,
-            contentFilter: this.contentFilter ?? userSettings.contentFilter,
-        };
+    toJSON(this: ConversationSetting): Omit<ConversationSettingAttributes, ""> {
+        const values = { ...this.get() };
+        return values as Omit<ConversationSettingAttributes, "">;
     }
 
     // ====== 静态方法 ======
@@ -132,7 +117,7 @@ export class ConversationSetting
      */
     static async getSettings(
         conversationId: string,
-        modelSetting?: UserConversationSetting
+        modelSetting: UserConversationSetting
     ): Promise<ConversationSetting> {
         let settings = await ConversationSetting.findOne({
             where: { conversationId },
@@ -142,19 +127,20 @@ export class ConversationSetting
             settings = await ConversationSetting.create({
                 conversationId,
                 // 全部 null，表示全部继承用户设置
-                contextLimit: modelSetting?.contextLimit || 0,
-                maxTokens: modelSetting?.maxTokens || null,
-                thinkingMode: modelSetting?.thinkingMode || null,
-                enableWebSearch: modelSetting?.enableWebSearch || null,
+                contextLimit: modelSetting?.contextLimit || 8096,
+                maxTokens: modelSetting?.maxTokens || 2048,
+                isThinking: modelSetting?.isThinking || false,
+                thinkingMode: modelSetting?.thinkingMode || 'fast',
+                enableWebSearch: modelSetting?.enableWebSearch || false,
                 enableCodeInterpreter: modelSetting?.enableCodeInterpreter || false,
                 enableFileUpload: modelSetting?.enableFileUpload || false,
-                temperature: modelSetting?.temperature || null,
-                topP: modelSetting?.topP || null,
-                frequencyPenalty: modelSetting?.frequencyPenalty || null,
-                presencePenalty: modelSetting?.presencePenalty || null,
-                responseFormat: modelSetting?.responseFormat || null,
-                streamResponse: modelSetting?.streamResponse || null,
-                contentFilter: modelSetting?.contentFilter || null,
+                temperature: modelSetting?.temperature || 0.7,
+                topP: modelSetting?.topP || 1,
+                logprobs: modelSetting?.logprobs || false,
+                topLogprobs: modelSetting?.topLogprobs || 0,
+                responseFormat: modelSetting?.responseFormat,
+                streamResponse: modelSetting?.streamResponse || true,
+                contentFilter: modelSetting?.contentFilter,
             });
         }
 
@@ -168,7 +154,12 @@ export class ConversationSetting
         conversationId: string,
         updates: Partial<ConversationSettingAttributes>
     ): Promise<ConversationSetting> {
-        const settings = await ConversationSetting.getSettings(conversationId);
+        const settings = await ConversationSetting.findOne({
+            where: { conversationId },
+        });
+        if (!settings) {
+            throw new Error("Conversation settings not found");
+        }
         await settings.update(updates);
         return settings;
     }
@@ -207,19 +198,44 @@ export default function initConversationSetting(
                     key: "id",
                 },
             },
+            systemPrompt: {
+                type: DataTypes.TEXT,
+                allowNull: true,
+                field: "system_prompt",
+                comment: "会话级系统提示词",
+            },
+            userPrompt: {
+                type: DataTypes.TEXT,
+                allowNull: true,
+                field: "user_prompt",
+                comment: "会话级用户提示词",
+            },
             contextLimit: {
                 type: DataTypes.INTEGER,
                 allowNull: true,
                 field: "context_limit",
                 comment: "上下文窗口大小，null 使用用户级",
-                validate: { min: 0, max: 100 },
+                validate: { 
+                    min: 1024,
+                    max: 1048576,
+                 },
             },
             maxTokens: {
                 type: DataTypes.INTEGER,
                 allowNull: true,
                 field: "max_tokens",
                 comment: "单次回复最大 token，null 使用用户级",
-                validate: { min: 256, max: 16384 },
+                validate: { 
+                    min: 1024,
+                    max: 1048576, 
+                },
+            },
+            isThinking: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: true,
+                field: "is_thinking",
+                comment: "是否启用思考模式",
             },
             thinkingMode: {
                 type: DataTypes.ENUM("fast", "balanced", "deep"),
@@ -258,19 +274,17 @@ export default function initConversationSetting(
                 comment: "核采样 0-1，null 使用用户级",
                 validate: { min: 0, max: 1 },
             },
-            frequencyPenalty: {
-                type: DataTypes.DECIMAL(3, 2),
-                allowNull: true,
-                field: "frequency_penalty",
-                comment: "频率惩罚 -2-2，null 使用用户级",
-                validate: { min: -2, max: 2 },
+            logprobs: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: false,
+                comment: "是否返回所输出 token 的对数概率",
             },
-            presencePenalty: {
-                type: DataTypes.DECIMAL(3, 2),
-                allowNull: true,
-                field: "presence_penalty",
-                comment: "存在惩罚 -2-2，null 使用用户级",
-                validate: { min: -2, max: 2 },
+            topLogprobs: {
+                type: DataTypes.INTEGER,
+                allowNull: false,
+                field: "top_logprobs",
+                comment: "指定每个输出位置返回输出概率 top N 的 token",
             },
             responseFormat: {
                 type: DataTypes.ENUM("text", "json", "markdown"),

@@ -56,6 +56,11 @@ export class Message
   declare createMessageFile: HasManyCreateAssociationMixin<MessageFile>;
 
   // ====== 实例方法 ======
+
+  toJSON(this: Message): Omit<MessageAttributes, "">{
+    const values = { ...this.get() };
+    return values as Omit<MessageAttributes, "">;
+  }
   /**
    * 获取消息内容预览
    */
