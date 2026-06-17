@@ -21,5 +21,6 @@ router.delete("/conversation/:conversationId/clear", authMiddleware, MessageCont
 // ai消息
 router.post('/generateAiReply', authMiddleware, MessageController.chatHandler)
 router.post('/resume', authMiddleware, MessageController.resumeChatHandler)
+router.post('/reGenerate', authMiddleware, MessageController.reGenerate)
 
 export default router;

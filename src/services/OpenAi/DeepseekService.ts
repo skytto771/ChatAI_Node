@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import config from '@/config/openAi'
 import { ConversationSettingAttributes } from "@/models/ConversationSetting";
+import { streamBackFn } from "./type";
 
 
 const openai = new OpenAI({
@@ -13,60 +14,6 @@ interface OpenAiOptions extends ConversationSettingAttributes {
     messages: Array<{ role: string; content: string }>;
 }
 
-interface streamBackFn {
-    type: string;
-    content: string | null;
-    tokensUsed?: number;
-    messageId?: string;
-}
-
-export async function sendToDeepSeek(options:OpenAiOptions) {
-    const {
-        messages,
-        model,
-        isThinking,
-        maxTokens
-    } = options
-
-    let thinkingP = {}
-    const params:any = {
-        model,
-        messages,
-        stream: false,
-    }
-    if(isThinking){
-        switch (options.thinkingMode) {
-            case 'fast':
-                params.thinking = {"type": "disabled"}
-                break
-            case 'balanced':
-                params.thinking = {"type": "enabled"}
-                params.reasoning_effort = "high"
-                break
-            case 'deep':
-                params.thinking = {"type": "enabled"}
-                params.reasoning_effort = "max"
-        }
-    }else{
-        params.thinking = {"type": "disabled"}
-    }
-    if(maxTokens){
-        params.max_tokens = maxTokens
-    }
-
-
-    try {
-        // 使用 as any 绕过 TypeScript 对非标准字段（thinking）的严格检查
-        const completion = await openai.chat.completions.create(params as any);
-        const result = {...completion.choices[0].message, tokensUsed: completion.usage?.total_tokens || 0}
-        return result;
-        
-    } catch (error) {
-        console.error("DeepSeek API Error:", error);
-        throw error;
-    }
-}
-
 export async function sendToDeepSeekStream(options:OpenAiOptions,onChunk:(back:streamBackFn)=>void) {
     const {
         messages,
@@ -74,6 +21,10 @@ export async function sendToDeepSeekStream(options:OpenAiOptions,onChunk:(back:s
         isThinking,
         enableWebSearch,
         maxTokens,
+        temperature,
+        topP,
+        logprobs,
+        topLogprobs,
     } = options
 
     let thinkingP = {}
@@ -81,7 +32,9 @@ export async function sendToDeepSeekStream(options:OpenAiOptions,onChunk:(back:s
         model,
         messages,
         stream: true,
+        extra_body: {},
     }
+    
     if(isThinking){
         switch (options.thinkingMode) {
             case 'fast':
@@ -98,13 +51,24 @@ export async function sendToDeepSeekStream(options:OpenAiOptions,onChunk:(back:s
     }else{
         params.thinking = {"type": "disabled"}
     }
-    if(enableWebSearch){
-        params.extra_body.enable_search = true
-    }
+    // if(enableWebSearch){
+    //     params.extra_body.enable_search = true
+    // }
     if(maxTokens){
         params.max_tokens = maxTokens
     }
-
+    if(temperature){
+        params.temperature = +temperature
+    }
+    if(topP){
+        params.top_p = +topP
+    }
+    // if(logprobs){
+    //     params.logprobs = logprobs
+    // }
+    // if(topLogprobs){
+    //     params.top_logprobs = topLogprobs
+    // }
 
     try {
         // 使用 as any 绕过 TypeScript 对非标准字段（thinking）的严格检查
@@ -112,6 +76,7 @@ export async function sendToDeepSeekStream(options:OpenAiOptions,onChunk:(back:s
         try{
             const completion:any = await openai.chat.completions.create(params as any);
             for await (let chunk of completion){
+                console.log(chunk.choices[0].delta)
                 if(chunk.choices[0].finish_reason === 'stop'){
                     onChunk({type: 'finish', content: null, tokensUsed: chunk.usage.total_tokens})
                 }

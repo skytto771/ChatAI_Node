@@ -35,11 +35,10 @@ export class MessageStreamManager {
     }
     
     // 移除监听器
-    static removeListener(messageId: string) {
+    static removeListener(messageId: string, listenerId: string) {
         const stream = this.streams.get(messageId);
         if (stream) {
-            // 注意：这里简化处理，实际需要传入具体的listener引用
-            stream.listeners.clear();
+            stream.listeners.delete(listenerId);
         }
     }
 

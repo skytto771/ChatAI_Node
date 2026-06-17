@@ -105,7 +105,7 @@ export class ModelSettingController {
 
         const updateSettings = req.body
 
-        if(!updateSettings.conversationId || !updateSettings.title || !updateSettings.model){
+        if(!updateSettings.conversationId){
             return res.status(400).json(
                 ResponseUtil.error(BusinessCode.PARAM_ERROR, "缺失必要参数", requestId)
             )

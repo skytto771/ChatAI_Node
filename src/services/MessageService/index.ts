@@ -269,7 +269,7 @@ export class MessageService {
                 where: {
                     conversationId: message.conversationId,
                     createdAt: {
-                        [Op.gte]: message.createdAt,
+                        [Op.gte]: message.updatedAt,
                     },
                 },
             });

@@ -1,8 +1,13 @@
 // services/ConversationService.ts
 import { Op } from "sequelize";
 import { Conversation, Message, UserConversationSetting, ConversationSetting } from "@/models";
+import { ConversationAttributes } from "@/models/Conversation";
+import { ConversationSettingAttributes } from "@/models/ConversationSetting";
 
 type ConversationInstance = InstanceType<typeof Conversation>
+interface backConversation extends ConversationAttributes{
+    settings: ConversationSettingAttributes
+}
 
 export class ConversationService {
     /**
@@ -11,7 +16,7 @@ export class ConversationService {
     static async createConversation(
         userId: string,
         data: Partial<ConversationInstance>
-    ): Promise<ConversationInstance> {
+    ): Promise<backConversation> {
         const conversation = await Conversation.create({
             userId,
             title: data.title || "新对话",
@@ -22,8 +27,8 @@ export class ConversationService {
         });
 
         const userScSettings = await UserConversationSetting.getSettings(userId);
-        await ConversationSetting.getSettings(conversation.id,userScSettings);
-        return conversation;
+        const settings = await ConversationSetting.getSettings(conversation.id,userScSettings);
+        return {...conversation.toJSON(),settings:settings.toJSON()};
     }
 
     /**
@@ -32,7 +37,7 @@ export class ConversationService {
     static async getConversationById(
         conversationId: string,
         userId: string
-    ): Promise<ConversationInstance | null> {
+    ): Promise<backConversation | null> {
         const conversation = await Conversation.findOne({
             where: {
                 id: conversationId,
@@ -44,13 +49,14 @@ export class ConversationService {
                     as: "messages",
                     order: [["created_at", "ASC"]],
                 },
-                {
-                    model: ConversationSetting,
-                    as: "setting",
-                }
             ],
         });
-        return conversation;
+        if (!conversation) {
+            return null;
+        }
+        const userScSettings = await UserConversationSetting.getSettings(userId);
+        const settings = await ConversationSetting.getSettings(conversation.id,userScSettings);
+        return {...conversation,settings:settings.toJSON()};
     }
 
     /**
@@ -76,6 +82,7 @@ export class ConversationService {
                 [Op.like]: `%${keyword}%`,
             };
         }
+        
 
         const result = await Conversation.findAndCountAll({
             where,
@@ -83,7 +90,7 @@ export class ConversationService {
             include:[
                 {
                     model: ConversationSetting,
-                    as: "setting",
+                    as: "settings",
                 }
             ]
         });
@@ -112,6 +119,9 @@ export class ConversationService {
 
         allowedUpdates.forEach((field) => {
             if (updates[field] !== undefined) {
+                if(updates['title'] === '' || updates['model'] === ''){
+                    return
+                }
                 updateData[field] = updates[field];
             }
         });

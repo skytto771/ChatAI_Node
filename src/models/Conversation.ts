@@ -117,7 +117,7 @@ export class Conversation
 
     Conversation.hasOne(models.ConversationSetting, {
       foreignKey: "conversation_id",
-      as: "setting",
+      as: "settings",
       onDelete: "CASCADE",
       onUpdate: "CASCADE",
     });

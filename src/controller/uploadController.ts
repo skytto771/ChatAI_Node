@@ -85,7 +85,7 @@ export const uploadInit = async (req: Request, res: Response) => {
             uploadedChunks: [],
         });
     } catch (err) {
-        console.log(err);
+        console.error(err);
         res.status(500).json({ success: false, error: err });
     }
 };
@@ -159,6 +159,7 @@ export const uploadComplete = async (req: Request, res: Response) => {
             data: { file: file.file },
         });
     } catch (err) {
+        console.error(err);
         res.status(500).json({ success: false, error: err });
     }
 };
