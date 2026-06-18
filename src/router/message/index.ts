@@ -14,13 +14,30 @@ router.post("/update", authMiddleware, MessageController.update);
 router.post("/delete", authMiddleware, MessageController.delete);
 
 // 会话消息
-router.post("/getMessageList", authMiddleware, MessageController.getConversationMessages);
-router.get("/conversation/:conversationId/last", authMiddleware, MessageController.getLastMessage);
-router.delete("/conversation/:conversationId/clear", authMiddleware, MessageController.clearConversation);
+router.post(
+  "/getMessageList",
+  authMiddleware,
+  MessageController.getConversationMessages,
+);
+router.get(
+  "/conversation/:conversationId/last",
+  authMiddleware,
+  MessageController.getLastMessage,
+);
+router.delete(
+  "/conversation/:conversationId/clear",
+  authMiddleware,
+  MessageController.clearConversation,
+);
 
 // ai消息
-router.post('/generateAiReply', authMiddleware, MessageController.chatHandler)
-router.post('/resume', authMiddleware, MessageController.resumeChatHandler)
-router.post('/reGenerate', authMiddleware, MessageController.reGenerate)
+router.post("/generateAiReply", authMiddleware, MessageController.chatHandler);
+router.post("/resume", authMiddleware, MessageController.resumeChatHandler);
+router.post("/reGenerate", authMiddleware, MessageController.reGenerate);
+router.post(
+  "/editAndRegenerate",
+  authMiddleware,
+  MessageController.editAndRegenerate,
+);
 
 export default router;
