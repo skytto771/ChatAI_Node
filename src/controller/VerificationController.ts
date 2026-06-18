@@ -66,9 +66,25 @@ async function sendCode(
         expires_at: expiresAt,
     });
 
+    let subject = "";
+    switch (purpose) {
+        case "register":
+            subject = "注册验证";
+            break;
+        case "login":
+            subject = "登录验证";
+            break;
+        case "reset_password":
+            subject = "重置密码";
+            break;
+        case "bind":
+            subject = "绑定验证";
+            break;
+    }
+
     // 发送验证码
     if (type === "email") {
-        await EmailService.sendVerificationEmail(contact, code);
+        await EmailService.sendVerificationEmail(contact, code, subject);
     } else {
         //   await SMSService.sendVerificationSMS(contact, code);
     }

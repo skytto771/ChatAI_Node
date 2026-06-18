@@ -14,6 +14,8 @@ export interface UserAttributes {
   role: "admin" | "user";
   status: "active" | "inactive" | "banned";
   lastLoginAt: Date | null;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiry?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date | null; // paranoid 模式
@@ -29,6 +31,8 @@ export interface UserCreationAttributes extends Optional<
   | "deletedAt"
   | "password"
   | "avatarUrl"
+  | "resetPasswordToken"
+  | "resetPasswordExpiry"
 > {}
 
 export class User
@@ -47,16 +51,28 @@ export class User
   declare role: "admin" | "user";
   declare status: "active" | "inactive" | "banned";
   declare lastLoginAt: Date;
+  declare resetPasswordToken: string | null;
+  declare resetPasswordExpiry: Date | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
   declare readonly deletedAt: Date | null;
 
   // ====== 实例方法 ======
   // 实例方法：返回安全信息（不包含密码）
-  toJSON(this: User): Omit<UserAttributes, "password"> {
+  toJSON(
+    this: User,
+  ): Omit<
+    UserAttributes,
+    "password" | "resetPasswordToken" | "resetPasswordExpiry"
+  > {
     const values = this.get({ plain: true }) as UserAttributes;
     delete (values as any).password;
-    return values as Omit<UserAttributes, "password">;
+    delete (values as any).resetPasswordToken;
+    delete (values as any).resetPasswordExpiry;
+    return values as Omit<
+      UserAttributes,
+      "password" | "resetPasswordToken" | "resetPasswordExpiry"
+    >;
   }
 
   // 实例方法：验证密码
@@ -64,10 +80,21 @@ export class User
     if (!password) {
       throw new Error("密码不能为空");
     }
-    if (password === this.password) {
-      return true;
-    }
     return await bcrypt.compare(password, this.password);
+  }
+
+  // 实例方法：生成密码重置 Token（6位随机码，5分钟有效）
+  generateResetToken(): string {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    this.resetPasswordToken = code;
+    this.resetPasswordExpiry = new Date(Date.now() + 5 * 60 * 1000);
+    return code;
+  }
+
+  // 实例方法：清除密码重置 Token
+  clearResetToken(): void {
+    this.resetPasswordToken = null as any;
+    this.resetPasswordExpiry = null as any;
   }
 
   // 静态方法：安全查找
@@ -254,6 +281,18 @@ export default function initUser(sequelize: Sequelize) {
           },
         },
         comment: "最后登录时间",
+      },
+      resetPasswordToken: {
+        type: DataTypes.STRING(10),
+        allowNull: true,
+        field: "reset_password_token",
+        comment: "密码重置验证码",
+      },
+      resetPasswordExpiry: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        field: "reset_password_expiry",
+        comment: "密码重置验证码过期时间",
       },
     },
     {

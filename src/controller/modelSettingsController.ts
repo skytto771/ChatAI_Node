@@ -59,6 +59,7 @@ export class ModelSettingController {
                 res.status(400).json(
                     ResponseUtil.error(BusinessCode.PARAM_INVALID, errorMessages, requestId)
                 );
+                return
             }
             res.status(500).json(
                 ResponseUtil.error(BusinessCode.SYSTEM_ERROR, "更新会话设置失败", requestId)

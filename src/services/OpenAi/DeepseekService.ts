@@ -76,7 +76,7 @@ export async function sendToDeepSeekStream(options:OpenAiOptions,onChunk:(back:s
         try{
             const completion:any = await openai.chat.completions.create(params as any);
             for await (let chunk of completion){
-                console.log(chunk.choices[0].delta)
+                // console.log(chunk.choices[0].delta)
                 if(chunk.choices[0].finish_reason === 'stop'){
                     onChunk({type: 'finish', content: null, tokensUsed: chunk.usage.total_tokens})
                 }

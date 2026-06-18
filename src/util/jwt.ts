@@ -13,12 +13,12 @@ export const createToken = (userinfo: User): Promise<string> => {
       (err, token) => {
         if (err) reject(err);
         else resolve(token as string);
-      }
+      },
     );
   });
 };
 
-export const getToken = async (req:Request) => {
+export const getToken = async (req: Request) => {
   const token = req.headers.authorization;
   if (!token) return null;
 
@@ -34,4 +34,23 @@ export const verifyToken = (token: string): Promise<jwt.JwtPayload | null> => {
   });
 };
 
-export default { createToken, getToken, verifyToken };
+/**
+ * 验证 token（忽略过期时间，用于刷新 token）
+ */
+export const verifyTokenIgnoreExpiry = (
+  token: string,
+): Promise<jwt.JwtPayload | null> => {
+  return new Promise((resolve) => {
+    jwt.verify(
+      token,
+      jwtConfig.secret,
+      { ignoreExpiration: true },
+      (err, decoded) => {
+        if (err) resolve(null);
+        else resolve(decoded as jwt.JwtPayload);
+      },
+    );
+  });
+};
+
+export default { createToken, getToken, verifyToken, verifyTokenIgnoreExpiry };

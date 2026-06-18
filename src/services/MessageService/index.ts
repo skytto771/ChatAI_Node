@@ -27,7 +27,7 @@ export class MessageService {
         if(count <= 0 && data.content){
             await conversation!.update(
                 {
-                    title: data.content.substring(0, 10),
+                    title: data.content.substring(0, 20),
                 }
             );
         }

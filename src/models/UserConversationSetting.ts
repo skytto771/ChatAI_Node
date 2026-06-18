@@ -59,17 +59,11 @@ export class UserConversationSetting
   // 思考模式配置
   declare isThinking: boolean;
   declare thinkingMode: "fast" | "balanced" | "deep";
-  declare enableReasoning: boolean;
-  declare reasoningEffort: "max" | "medium" | "high";
   
   // 功能开关
   declare enableWebSearch: boolean;
   declare enableCodeInterpreter: boolean;
   declare enableFileUpload: boolean;
-  
-  // 记忆配置
-  declare enableMemory: boolean;
-  declare memoryWindow: number;
   
   // 模型参数
   declare temperature: number;

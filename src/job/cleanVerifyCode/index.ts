@@ -4,7 +4,7 @@ import { cleanExpiredCodes } from '@/controller/VerificationController'
 
 
 export async function cleanCode(){
-    schedule.scheduleJob('0 0 * * * *', async ()=>{
+    schedule.scheduleJob('0 0 0 * * *', async ()=>{
         try{
             console.log('清理过期验证码...')
             await cleanExpiredCodes()

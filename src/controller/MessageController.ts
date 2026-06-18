@@ -470,14 +470,14 @@ export class MessageController {
         }
 
         try{
-            await MessageService.createMessage(conversationId,{
+            const newMessage = await MessageService.createMessage(conversationId,{
                 role: 'assistant',
                 content: '',
                 reasoning: '',
                 status: 'generating'
             })
             // 注册到流管理器
-            MessageStreamManager.createStream(message.id);
+            MessageStreamManager.createStream(newMessage.id);
             
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
@@ -487,22 +487,22 @@ export class MessageController {
             await sendToDeepSeekStream(options,(back)=>{
                 const chunk = {
                     ...back,
-                    messageId: message.id,
+                    messageId: newMessage.id,
                     position: fullResponse.length
                 }
                 if(back.type == 'content' && back.content){
                     res.write(`${JSON.stringify(chunk)}\n\n`)
-                    MessageStreamManager.pushChunk(message.id, chunk)
+                    MessageStreamManager.pushChunk(newMessage.id, chunk)
                     fullResponse += back.content
                 }
                 if(back.type == 'reasoning_content' && back.content){
                     res.write(`${JSON.stringify(chunk)}\n\n`)
-                    MessageStreamManager.pushChunk(message.id, chunk)
+                    MessageStreamManager.pushChunk(newMessage.id, chunk)
                     fullReasoning += back.content
                 }
                 const shouldSaveBySize = back.type === 'finish' || fullResponse.length - lastSaveLength >= SAVE_CHUNK_SIZE;
                 if (shouldSaveBySize || back.type == 'finish') { 
-                    message.update({
+                    newMessage.update({
                         content: fullResponse,
                         reasoning: fullReasoning,
                         status: back.type == 'finish' ? 'completed' : 'generating',
@@ -512,8 +512,8 @@ export class MessageController {
                 }
                 if(back.type == 'finish'){
                     res.write(`${JSON.stringify(chunk)}\n\n`)
-                    MessageStreamManager.pushChunk(message.id, chunk)
-                    MessageStreamManager.completeStream(message.id);
+                    MessageStreamManager.pushChunk(newMessage.id, chunk)
+                    MessageStreamManager.completeStream(newMessage.id);
                     res.end()
                 }
             })
