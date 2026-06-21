@@ -55,7 +55,10 @@ export class ConversationService {
         {
           model: Message,
           as: "messages",
-          order: [["created_at", "ASC"]],
+          order: [
+            ["created_at", "ASC"],
+            ["sort_seq", "ASC"],
+          ],
         },
       ],
     });
@@ -127,7 +130,12 @@ export class ConversationService {
       return null;
     }
 
-    const allowedUpdates: (keyof ConversationInstance)[] = ["title", "model", "isTop", "isArchived"];
+    const allowedUpdates: (keyof ConversationInstance)[] = [
+      "title",
+      "model",
+      "isTop",
+      "isArchived",
+    ];
     const updateData: any = {};
     allowedUpdates.forEach((field) => {
       if (updates[field] !== undefined) {

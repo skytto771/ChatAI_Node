@@ -7,7 +7,8 @@
     "test": "jest",
     "dev": "cross-env NODE_ENV=development nodemon --exec tsx src/app.ts",
     "start": "cross-env NODE_ENV=production node dist/app.js",
-    "build": "tsc"
+    "build": "tsc",
+    "preview": "cross-env NODE_ENV=production tsx dist/app.js"
   },
   "keywords": [],
   "author": "",

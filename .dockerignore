@@ -1,0 +1,13 @@
+node_modules
+dist
+.env
+.env.local
+logs
+*.log
+.git
+.gitignore
+README.md
+uploads/files/*
+uploads/temp/*
+!uploads/files/.gitkeep
+!uploads/temp/.gitkeep

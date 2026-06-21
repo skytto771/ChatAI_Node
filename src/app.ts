@@ -64,6 +64,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // 处理静态文件访问
+app.use("/", express.static(path.join(__dirname, "assets")));
 app.use(
   "/images",
   express.static(path.join(__dirname, "uploads/files/images")),

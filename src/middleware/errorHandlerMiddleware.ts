@@ -8,14 +8,14 @@ import { ApiResponse } from '../types/response.interface';
 
 export const notFoundHandler = (req: Request, res: Response, next: NextFunction) => {
 console.error(`[404] ${req.method} ${req.path}:`);
-
-  res.status(404).json({
-    code: 404,
-    message: `路由 ${req.method} ${req.originalUrl} 不存在`,
-    data: null,
-    timestamp: Date.now(),
-    requestId: req.headers['x-request-id'] as string,
-  });
+    
+    res.status(404).json({
+        code: 404,
+        message: `路由 ${req.method} ${req.originalUrl} 不存在`,
+        data: null,
+        timestamp: Date.now(),
+        requestId: req.headers['x-request-id'] as string,
+    });
 };
 
 

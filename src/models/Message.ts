@@ -15,12 +15,13 @@ import type { MessageFile } from "./MessageFile";
 // ========== 1. 定义字段属性接口 ==========
 export interface MessageAttributes {
   id: string;
+  sortSeq: number;
   conversationId: string;
   role: "user" | "assistant" | "system";
   content: string;
   reasoning: string | null;
   tokensUsed: number;
-  status: 'completed' | 'generating';
+  status: "completed" | "generating";
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -28,7 +29,7 @@ export interface MessageAttributes {
 // ========== 2. 创建时可选的字段 ==========
 export interface MessageCreationAttributes extends Optional<
   MessageAttributes,
-  "id" | "tokensUsed"
+  "id" | "sortSeq" | "tokensUsed"
 > {}
 
 // ========== 3. 扩展 Model 类 ==========
@@ -37,12 +38,13 @@ export class Message
   implements MessageAttributes
 {
   declare id: string;
+  declare sortSeq: number;
   declare conversationId: string;
   declare role: "user" | "assistant" | "system";
   declare content: string;
   declare reasoning: string | null;
   declare tokensUsed: number;
-  declare status: 'completed' | 'generating';
+  declare status: "completed" | "generating";
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 
@@ -57,7 +59,7 @@ export class Message
 
   // ====== 实例方法 ======
 
-  toJSON(this: Message): Omit<MessageAttributes, "">{
+  toJSON(this: Message): Omit<MessageAttributes, ""> {
     const values = { ...this.get() };
     return values as Omit<MessageAttributes, "">;
   }
@@ -126,7 +128,10 @@ export class Message
 
     return await Message.findAll({
       where,
-      order: [["created_at", "ASC"]],
+      order: [
+        ["created_at", "ASC"],
+        ["sort_seq", "ASC"],
+      ],
       limit,
     });
   }
@@ -137,7 +142,10 @@ export class Message
   static async getLastMessage(conversationId: number): Promise<Message | null> {
     return await Message.findOne({
       where: { conversationId },
-      order: [["created_at", "DESC"]],
+      order: [
+        ["created_at", "DESC"],
+        ["sort_seq", "DESC"],
+      ],
     });
   }
 
@@ -162,6 +170,13 @@ export default function initMessage(sequelize: Sequelize): typeof Message {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
         comment: "消息ID",
+      },
+      sortSeq: {
+        type: DataTypes.BIGINT.UNSIGNED,
+        autoIncrement: true,
+        unique: true,
+        field: "sort_seq",
+        comment: "全局自增排序号，保证消息插入顺序",
       },
       conversationId: {
         type: DataTypes.UUID,
@@ -207,7 +222,6 @@ export default function initMessage(sequelize: Sequelize): typeof Message {
         defaultValue: "generating",
         comment: "消息状态",
       },
-
     },
     {
       sequelize,
@@ -218,6 +232,7 @@ export default function initMessage(sequelize: Sequelize): typeof Message {
       indexes: [
         { fields: ["conversation_id"], name: "idx_conversation_id" },
         { fields: ["created_at"], name: "idx_created_at" },
+        { fields: ["sort_seq"], name: "idx_sort_seq" },
         {
           fields: ["conversation_id", "created_at"],
           name: "idx_conversation_created",
