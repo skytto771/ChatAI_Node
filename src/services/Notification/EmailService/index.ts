@@ -39,7 +39,8 @@ class EmailService {
 
     try {
       await this.transporter.sendMail(mailOptions);
-    } catch (error) {
+    } catch (error: any) {
+      console.error("📧 邮件发送失败详情:", error.message || error);
       throw new Error("邮件发送失败，请稍后重试");
     }
   }
