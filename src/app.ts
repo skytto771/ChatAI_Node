@@ -116,8 +116,11 @@ const startServer = async () => {
     intervalControl.start();
 
     // 启动服务器
-    app.listen(process.env.PORT || 3000, () => {
-      console.log(`🚀 服务器运行在 http://localhost:${process.env.PORT}`);
+    const port = process.env.PORT || 3000;
+    const corsOrigin = process.env.CORS_ORIGIN || `http://localhost:${port}`;
+    app.listen(port, () => {
+      console.log(`🚀 后端 API 已启动（端口 ${port}）`);
+      console.log(`🌐 前端访问: ${corsOrigin}`);
     });
   } catch (error) {
     console.error("❌ 启动失败:", error);
