@@ -37,12 +37,13 @@ COPY --from=builder /app/dist ./dist
 # 复制静态资源（HTML 等）
 COPY --from=builder /app/src/assets ./dist/assets
 
-# 创建上传目录
+# 创建运行时目录
 RUN mkdir -p dist/uploads/files/images \
              dist/uploads/files/videos \
              dist/uploads/files/others \
-             dist/uploads/temp && \
-    chown -R nodejs:nodejs dist/uploads
+             dist/uploads/temp \
+             logs && \
+    chown -R nodejs:nodejs dist/uploads logs
 
 USER nodejs
 
