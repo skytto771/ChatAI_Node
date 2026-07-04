@@ -174,7 +174,7 @@ export class ConversationService {
   }
 
   /**
-   * 删除会话（软删除或硬删除）
+   * 归档会话（将 isArchived 设为 true）
    */
   static async deleteConversation(
     conversationId: string,
@@ -188,7 +188,7 @@ export class ConversationService {
       return false;
     }
 
-    await conversation.destroy();
+    await conversation.update({ isArchived: true });
 
     return true;
   }

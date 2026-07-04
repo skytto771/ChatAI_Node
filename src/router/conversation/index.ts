@@ -36,5 +36,7 @@ router.post("/toggleTop", authMiddleware, ConversationController.toggleTop);
 // 归档操作
 router.post("/:id/archive", authMiddleware, ConversationController.archive);
 router.post("/:id/unarchive", authMiddleware, ConversationController.unarchive);
+router.post("/archiveConversation", authMiddleware, ConversationController.archive);
+router.post("/unarchiveConversation", authMiddleware, ConversationController.unarchive);
 
 export default router;

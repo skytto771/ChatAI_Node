@@ -242,7 +242,7 @@ export class ConversationController {
   }
 
   /**
-   * 删除会话
+   * 归档会话
    */
   static async delete(req: Request, res: Response) {
     const requestId = req.headers["x-request-id"] as string;
@@ -264,15 +264,15 @@ export class ConversationController {
           );
       }
 
-      res.json(ResponseUtil.success(null, "删除成功", requestId));
+      res.json(ResponseUtil.success(null, "归档成功", requestId));
     } catch (error) {
-      console.error("删除会话失败:", error);
+      console.error("归档会话失败:", error);
       res
         .status(500)
         .json(
           ResponseUtil.error(
             BusinessCode.SYSTEM_ERROR,
-            "删除会话失败",
+            "归档会话失败",
             requestId,
           ),
         );
