@@ -280,7 +280,60 @@ export class ConversationController {
   }
 
   /**
-   * 批量删除归档会话
+   * 永久删除单个归档会话
+   */
+  static async deleteSingleArchived(req: Request, res: Response) {
+    const requestId = req.headers["x-request-id"] as string;
+    const userId = req.user!.id;
+    const { id } = req.body;
+
+    if (!id) {
+      res
+        .status(400)
+        .json(
+          ResponseUtil.error(
+            BusinessCode.PARAM_ERROR,
+            "缺少会话 ID",
+            requestId,
+          ),
+        );
+      return;
+    }
+
+    try {
+      const deleted =
+        await ConversationService.deleteArchivedConversation(id, userId);
+
+      if (!deleted) {
+        res
+          .status(404)
+          .json(
+            ResponseUtil.error(
+              BusinessCode.RESOURCE_NOT_FOUND,
+              "归档会话不存在",
+              requestId,
+            ),
+          );
+        return;
+      }
+
+      res.json(ResponseUtil.success(null, "归档会话已删除", requestId));
+    } catch (error) {
+      console.error("删除归档会话失败:", error);
+      res
+        .status(500)
+        .json(
+          ResponseUtil.error(
+            BusinessCode.SYSTEM_ERROR,
+            "删除归档会话失败",
+            requestId,
+          ),
+        );
+    }
+  }
+
+  /**
+   * 删除全部归档会话
    */
   static async deleteArchived(req: Request, res: Response) {
     const requestId = req.headers["x-request-id"] as string;

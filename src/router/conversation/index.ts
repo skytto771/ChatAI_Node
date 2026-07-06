@@ -24,19 +24,23 @@ router.post(
   ConversationController.update,
 );
 router.post("/delConversation", authMiddleware, ConversationController.delete);
-router.post(
-  "/archived/all",
-  authMiddleware,
-  ConversationController.deleteArchived,
-);
+
 
 // 置顶操作
 router.post("/toggleTop", authMiddleware, ConversationController.toggleTop);
 
 // 归档操作
-router.post("/:id/archive", authMiddleware, ConversationController.archive);
-router.post("/:id/unarchive", authMiddleware, ConversationController.unarchive);
 router.post("/archiveConversation", authMiddleware, ConversationController.archive);
 router.post("/unarchiveConversation", authMiddleware, ConversationController.unarchive);
+router.post(
+  "/archived/del",
+  authMiddleware,
+  ConversationController.deleteSingleArchived,
+);
+router.post(
+  "/archived/all",
+  authMiddleware,
+  ConversationController.deleteArchived,
+);
 
 export default router;

@@ -207,6 +207,23 @@ export class ConversationService {
   }
 
   /**
+   * 永久删除单个归档会话
+   */
+  static async deleteArchivedConversation(
+    conversationId: string,
+    userId: string,
+  ): Promise<boolean> {
+    const result = await Conversation.destroy({
+      where: {
+        id: conversationId,
+        userId,
+        isArchived: true,
+      },
+    });
+    return result > 0;
+  }
+
+  /**
    * 批量删除用户的归档会话
    */
   static async deleteArchivedConversations(userId: string): Promise<number> {
